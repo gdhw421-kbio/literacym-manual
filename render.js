@@ -150,6 +150,7 @@ blocks + '\n\n' +
 '    <div class="line-en">' + rich(doc.footerMain) + '</div>\n' +
 '    <div class="line-ko">' + rich(common.footerKo || '') + '</div>\n' +
 (doc.switchHtml ? '    <div class="switch no-print">' + doc.switchHtml + '</div>\n' : '') +
+'    <div class="switch no-print"><a href="index.html">' + esc(ui(doc, 'homeLink', 'Choose a different language or phone')) + '</a> <span>· 언어·기기 다시 선택</span></div>\n' +
 '    <div class="mark">' + esc(brand.partners || '') + '</div>\n' +
 '  </footer>\n\n' +
 '</div>\n\n' +
@@ -158,48 +159,117 @@ blocks + '\n\n' +
 '</body>\n</html>\n';
   }
 
-  /* ---- landing page ---------------------------------------------------- */
+  /* ---- landing page: two-step selector ---------------------------------- */
+  var PHONE = {
+    android: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="2.4"/><path d="M9.6 18.8h4.8"/></svg>',
+    iphone: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="6" y="2.5" width="12" height="19" rx="3.2"/><path d="M10.2 5.1h3.6"/><path d="M10.4 19.2h3.2"/></svg>',
+    globe: '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="8.6"/><path d="M3.6 12h16.8"/><path d="M12 3.4c2.3 2.3 3.5 5.3 3.5 8.6S14.3 18.3 12 20.6c-2.3-2.3-3.5-5.3-3.5-8.6S9.7 5.7 12 3.4z"/></svg>'
+  };
+
+  function phoneIcon(os) {
+    var o = String(os || '').toLowerCase();
+    if (o.indexOf('iphone') >= 0 || o.indexOf('ios') >= 0) return PHONE.iphone;
+    if (o.indexOf('android') >= 0) return PHONE.android;
+    return PHONE.android;
+  }
+
+  /* "iPhone (iOS)" -> "iPhone" */
+  function shortOs(os) {
+    return String(os || '').replace(/\s*[（(].*?[)）]\s*/g, '').trim() || String(os || '');
+  }
+
   function renderIndex(project) {
     var brand = project.brand || {};
-    var wm = esc(brand.wordmark || 'LiteracyM').replace(/M$/, '<em>M</em>');
-    var groups = {};
-    project.docs.forEach(function (d) {
-      var key = d.langName || d.lang;
-      (groups[key] = groups[key] || []).push(d);
+    var wmPlain = esc(brand.wordmark || 'LiteracyM');
+    var wm = wmPlain.replace(/M$/, '<em>M</em>');
+
+    /* group documents by language, keeping the order they appear in */
+    var order = [], byLang = {};
+    (project.docs || []).forEach(function (d) {
+      var key = d.lang || d.langName || 'x';
+      if (!byLang[key]) { byLang[key] = { key: key, docs: [], sample: d }; order.push(key); }
+      byLang[key].docs.push(d);
     });
-    var sections = Object.keys(groups).map(function (key) {
-      var ds = groups[key];
-      var label = esc(ds[0].langLabel || key);
-      return '  <section class="group">\n' +
-        '    <div class="group-label">' + label + ' <span>· ' + esc(key) + '</span></div>\n' +
-        '    <div class="links">\n' +
-        ds.map(function (d) {
-          return '      <a class="pick" href="' + esc(d.file) + '">\n' +
-            '        <span class="os">' + esc(d.os) + ' <i>&rarr;</i></span>\n' +
-            '        <span class="sub">' + esc(d.titleMain) + '</span>\n' +
-            '      </a>';
-        }).join('\n') + '\n    </div>\n  </section>';
+
+    /* step 1 — language */
+    var langOpts = order.map(function (key) {
+      var g = byLang[key], d = g.sample;
+      return '        <button class="opt" type="button" data-go="lang-' + esc(key) + '">\n' +
+        '          <span class="ic">' + PHONE.globe + '</span>\n' +
+        '          <span class="tx"><span class="main">' + esc(d.langLabel || d.langName || key) + '</span>' +
+        '<span class="sub">' + esc(d.langName || '') + '</span></span>\n' +
+        '          <span class="go">&rarr;</span>\n' +
+        '        </button>';
+    }).join('\n');
+
+    /* step 2 — device, one panel per language */
+    var devSteps = order.map(function (key) {
+      var g = byLang[key], d0 = g.sample;
+      var ui = d0.ui || {};
+      var title = ui.pickDevice || 'Which phone do you use?';
+      var back = ui.back || 'Back';
+      var opts = g.docs.map(function (d) {
+        return '        <a class="opt" href="' + esc(d.file) + '">\n' +
+          '          <span class="ic">' + phoneIcon(d.os) + '</span>\n' +
+          '          <span class="tx"><span class="main">' + esc(shortOs(d.os)) + '</span>' +
+          '<span class="sub">' + esc(d.osKo || '') + '</span></span>\n' +
+          '          <span class="go">&rarr;</span>\n' +
+          '        </a>';
+      }).join('\n');
+      return '    <section class="step" id="lang-' + esc(key) + '">\n' +
+        '      <div class="top">\n' +
+        '        <button class="back" type="button" data-go="pick-lang">&larr; ' + esc(back) + '</button>\n' +
+        '        <span class="sp"></span>\n' +
+        '        <span class="count"><b>2</b> / 2</span>\n' +
+        '      </div>\n' +
+        '      <h1>' + esc(title) + '<span>사용하시는 기기를 선택하세요</span></h1>\n' +
+        '      <div class="opts">\n' + opts + '\n      </div>\n' +
+        '    </section>';
     }).join('\n\n');
 
     return '<!DOCTYPE html>\n<html lang="en">\n<head>\n<meta charset="utf-8" />\n' +
 '<meta name="viewport" content="width=device-width,initial-scale=1.0" />\n' +
-'<title>' + esc(brand.wordmark || 'LiteracyM') + ' — User Guides | ' + esc(brand.wordmarkKo || '') + ' 사용자 매뉴얼</title>\n' +
-'<meta name="description" content="Choose your phone and language to open the setup guide. 사용 기기와 언어를 선택하세요." />\n' +
+'<title>' + wmPlain + ' — User Guide | ' + esc(brand.wordmarkKo || '') + ' 사용자 매뉴얼</title>\n' +
+'<meta name="description" content="Select your language and phone to open the setup guide. 언어와 기기를 선택하면 설치 가이드가 열립니다." />\n' +
+'<meta name="theme-color" content="#f6f6f4" />\n' +
 '<link rel="preconnect" href="https://fonts.googleapis.com">\n' +
 '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n' +
 '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;900&display=swap" rel="stylesheet">\n' +
-'<style>\n' + global.INDEX_CSS + '\n</style>\n</head>\n<body>\n' +
-'<main class="card">\n' +
-'  <div class="wordmark">' + wm + '</div>\n' +
-'  <div class="wordmark-ko">' + esc(brand.wordmarkKo || '') + '</div>\n' +
-'  <div class="rule"></div>\n' +
-'  <h1>Choose your phone and language<br>to open the setup guide</h1>\n' +
-'  <div class="h1-ko">사용 기기와 언어를 선택하면 가입·설치·로그인 가이드가 열립니다</div>\n\n' +
-sections + '\n\n' +
-'  <div class="note">Every guide prints as 16:9 slides — use the print button at the top of the page.<br>\n' +
-'  각 가이드는 상단 인쇄 버튼으로 16:9 슬라이드 형식 인쇄 · PDF 저장이 됩니다.</div>\n' +
-'  <div class="mark">' + esc(brand.partners || '') + '</div>\n' +
-'</main>\n</body>\n</html>\n';
+'<style>\n' + global.INDEX_CSS + '\n</style>\n</head>\n<body>\n\n' +
+'<div class="brand">\n' +
+'  <div class="wm">' + wm + '</div>\n' +
+'  <div class="ko">' + esc(brand.wordmarkKo || '') + '</div>\n' +
+'</div>\n\n' +
+'<main class="app">\n' +
+'  <div class="card">\n\n' +
+'    <section class="step on" id="pick-lang">\n' +
+'      <div class="top"><span class="sp"></span><span class="count"><b>1</b> / 2</span></div>\n' +
+'      <h1>Select your language<span>언어를 선택하세요</span></h1>\n' +
+'      <div class="opts">\n' + langOpts + '\n      </div>\n' +
+'    </section>\n\n' +
+devSteps + '\n\n' +
+'  </div>\n' +
+'</main>\n\n' +
+'<div class="mark">' + esc(brand.partners || '') + '</div>\n\n' +
+'<script>\n' +
+'(function () {\n' +
+'  var steps = document.querySelectorAll(".step");\n' +
+'  function show(id) {\n' +
+'    steps.forEach(function (s) { s.classList.toggle("on", s.id === id); });\n' +
+'    if (history.replaceState) history.replaceState(null, "", "#" + id);\n' +
+'    window.scrollTo(0, 0);\n' +
+'  }\n' +
+'  document.querySelectorAll("[data-go]").forEach(function (b) {\n' +
+'    b.addEventListener("click", function () { show(b.dataset.go); });\n' +
+'  });\n' +
+'  var h = (location.hash || "").slice(1);\n' +
+'  if (h && document.getElementById(h)) show(h);\n' +
+'  window.addEventListener("hashchange", function () {\n' +
+'    var id = (location.hash || "").slice(1) || "pick-lang";\n' +
+'    if (document.getElementById(id)) show(id);\n' +
+'  });\n' +
+'})();\n' +
+'<\/script>\n</body>\n</html>\n';
   }
 
   global.renderGuide = renderGuide;
