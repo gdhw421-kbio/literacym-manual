@@ -1,16 +1,17 @@
-/* 리터러시M 매뉴얼 사이트 빌드 스크립트
+/* 리터러시M 매뉴얼 사이트 빌드 (v2)
  *
- *  manual-project.json 하나만 고치면 아래 파일들을 dist/ 에 새로 만듭니다.
+ *  manual-project.json 하나만 고치면 아래 파일들을 새로 만듭니다.
  *    dist/index.html
- *    dist/literacym-guide-*.html
- *    dist/manual-project.json   (관리자 페이지가 읽어가는 사본)
+ *    dist/literacym-guide-<기기>-<언어>.html   (기기 × 언어 조합 전부)
+ *    dist/manual-project.json
+ *    admin-dist/index.html                     (admin.html 이 있으면)
  *
- *  Netlify 설정 (공개 사이트)
- *    Build command      : node build.mjs
- *    Publish directory  : dist
+ *  Netlify 설정
+ *    공개 사이트 : Build command  node build.mjs   /  Publish directory  dist
+ *    관리자 사이트: Build command  node build.mjs   /  Publish directory  admin-dist
  *
- *  admin.html 을 저장소에 넣으면 admin-dist/ 도 함께 만들어진다.
- *  이 폴더는 Private 로 둔 두 번째 Netlify 사이트에서 쓴다.
+ *  언어를 추가하려면 manual-project.json 의 languages 배열에 항목을 하나 넣으면
+ *  됩니다. 문서는 자동으로 늘어납니다.
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -30,48 +31,43 @@ function asset(name) {
   process.exit(1);
 }
 
-/* --- load the shared renderer (same file the admin page uses) --- */
-const sandbox = {};
-new Function('window', asset('render.js'))(sandbox);
-sandbox.GUIDE_CSS = asset('guide.css');
-sandbox.GUIDE_JS = asset('guide.js');
-sandbox.INDEX_CSS = asset('index.css');
+/* 관리자 페이지와 똑같은 렌더러를 사용한다 */
+const R = {};
+new Function('window', asset('render.js'))(R);
+R.GUIDE_CSS = asset('guide.css');
+R.GUIDE_JS = asset('guide.js');
+R.INDEX_CSS = asset('index.css');
 
-/* --- render --- */
 const project = JSON.parse(read(join(ROOT, 'manual-project.json')));
-if (!project.docs || !project.docs.length) {
-  console.error('manual-project.json 에 docs 가 없습니다.');
+const languages = project.languages || [];
+const devices = project.devices || [];
+if (!languages.length || !devices.length) {
+  console.error('manual-project.json 에 languages 또는 devices 가 없습니다.');
   process.exit(1);
 }
 
 mkdirSync(DIST, { recursive: true });
 
-const files = [['index.html', sandbox.renderIndex(project)]];
-for (const doc of project.docs) {
-  const name = doc.file || `${doc.id || 'guide'}.html`;
-  files.push([name, sandbox.renderGuide(doc, project)]);
+const files = [['index.html', R.renderIndex(project)]];
+for (const lang of languages) {
+  for (const device of devices) {
+    files.push([R.guideFileName(device.id, lang.code), R.renderGuide(device, lang, project)]);
+  }
 }
 
 for (const [name, html] of files) {
   writeFileSync(join(DIST, name), html, 'utf8');
   console.log(`  ${name}  ${(Buffer.byteLength(html) / 1024).toFixed(0)} KB`);
 }
-
-/* the admin page fetches this to stay in sync with what is published */
 copyFileSync(join(ROOT, 'manual-project.json'), join(DIST, 'manual-project.json'));
-console.log('  manual-project.json (사본)');
 
-console.log(`\n공개 사이트: ${files.length}개 페이지를 dist/ 에 만들었습니다.`);
+console.log(`\n공개 사이트: ${files.length}개 페이지 → dist/`);
+console.log(`  언어 ${languages.length}개 (${languages.map((l) => l.code).join(', ')})` +
+            ` × 기기 ${devices.length}개 (${devices.map((d) => d.id).join(', ')})`);
 
 /* ------------------------------------------------------------------ *
- *  관리자 페이지는 별도 폴더(admin-dist/)로 내보낸다.
- *  Netlify 사이트를 2개 만들어
- *    사이트1  publish: dist        → Public  (환자용)
- *    사이트2  publish: admin-dist  → Private (관리자 전용, 본인만)
- *  로 설정하면 관리자 페이지가 공개되지 않는다.
+ *  관리자 페이지는 별도 폴더로. 폴더는 admin.html 유무와 상관없이 만든다.
  * ------------------------------------------------------------------ */
-/* admin-dist/ 는 admin.html 유무와 상관없이 항상 만든다.
-   폴더가 없으면 관리자 사이트 배포가 실패하기 때문이다. */
 mkdirSync(ADMIN_DIST, { recursive: true });
 copyFileSync(join(ROOT, 'manual-project.json'), join(ADMIN_DIST, 'manual-project.json'));
 
@@ -91,5 +87,5 @@ if (existsSync(admin)) {
     'font-size:13px}</style></head><body><div><h1>관리자 페이지가 아직 없습니다</h1>' +
     '<p>저장소에 <code>admin.html</code> 을 업로드하면 이 자리에 관리자 페이지가 표시됩니다.</p>' +
     '</div></body></html>\n', 'utf8');
-  console.log('관리자 사이트: admin.html 이 없어 안내 페이지를 넣었습니다 (admin-dist/)');
+  console.log('관리자 사이트: admin.html 이 없어 안내 페이지를 넣었습니다');
 }
