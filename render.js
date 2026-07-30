@@ -187,15 +187,14 @@
 '</div>\n' +
 '<div class="prog no-print"><i id="prog-bar"></i></div>\n\n' +
 '<div class="wrap">\n\n' +
-'  <header class="cover page" id="cover" data-label="' + esc(ui(lang, 'coverLabel')) + '">\n' +
+'  <header class="cover" id="cover">\n' +
 '    <div class="wordmark">' + wm + '</div>\n' +
 '    <div class="wordmark-ko">' + esc(site.wordmarkKo || '') + '</div>\n' +
 '    <div class="cover-rule"></div>\n' +
 '    <h1>' + rich(title) + '<br><span class="os">(' + esc(device.name) + ')</span></h1>\n' +
 (bilingual ? '    <div class="h1-ko">' + esc(site.wordmarkKo || '') + ' · ' + esc(device.nameKo || '') + '용</div>\n' : '') +
 (ui(lang, 'audience') ? '    <div class="audience">' + esc(ui(lang, 'audience')) + '</div>\n' : '') +
-'    <div class="cover-go no-print"><button class="btn btn-primary" data-goto="1">' +
-     esc(ui(lang, 'start')) + ' &rarr;</button></div>\n' +
+
 ((site.projectKo || site.partners)
   ? '    <div class="credits">\n' +
     (site.projectKo ? '      <div>' + rich(site.projectKo) + '</div>\n' : '') +
@@ -264,7 +263,10 @@ blocks + '\n\n' +
       return '    <section class="step' + (withBack ? '' : ' on') + '" id="' + idAttr + '">\n' +
         '      <div class="top">' +
         (withBack ? '<button class="back" type="button" data-go="pick-lang">&larr; ' + esc(ui(lang, 'back')) + '</button>' : '') +
-        '<span class="sp"></span><span class="count"><b>' + totalSteps + '</b> / ' + totalSteps + '</span></div>\n' +
+        '<span class="sp"></span>' +
+        (totalSteps > 1 ? '<span class="count"><b>' + totalSteps + '</b> / ' + totalSteps + '</span>' : '') +
+        '</div>\n' +
+        '      <div class="doc-title">' + rich(ui(lang, 'title')) + '</div>\n' +
         '      <h1>' + esc(ui(lang, 'pickDevice')) + '</h1>\n' +
         '      <div class="opts">\n' + opts + '\n      </div>\n' +
         '    </section>';

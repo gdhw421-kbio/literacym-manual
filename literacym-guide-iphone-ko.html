@@ -55,9 +55,9 @@ a{color:var(--accent);text-decoration:none}
 @keyframes pinb{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
 @media(prefers-reduced-motion:reduce){.page.on{animation:none}}
 
-/* ---------- cover ---------- */
-.cover{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:38px 26px 30px;
-  text-align:center;position:relative;overflow:hidden}
+/* ---------- cover : 인쇄 전용 (화면에서는 숨김) ---------- */
+.cover{display:none;background:var(--surface);border:1px solid var(--line);border-radius:16px;
+  padding:38px 26px 30px;text-align:center;position:relative;overflow:hidden}
 .cover::before{content:"";position:absolute;inset:0 0 auto;height:4px;
   background:linear-gradient(90deg,var(--accent),#ff8a5c 60%,#ffd166)}
 .wordmark{font-family:'Inter',sans-serif;font-size:34px;font-weight:800;letter-spacing:-1.6px;line-height:1}
@@ -216,6 +216,7 @@ li.star .line-ko{color:#b06157}
 
   .page{display:block !important;width:338mm;height:190mm;margin:0;overflow:hidden}
   .page.foot{display:none !important}
+  .cover{display:flex !important;width:338mm;height:190mm}
   .cover,.step{width:338mm;height:190mm;margin:0;border:none;border-radius:0;overflow:hidden;
     display:flex;flex-direction:column;break-inside:avoid;page-break-inside:avoid;
     break-after:page;page-break-after:always;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -273,13 +274,12 @@ li.star .line-ko{color:#b06157}
 
 <div class="wrap">
 
-  <header class="cover page" id="cover" data-label="표지">
+  <header class="cover" id="cover">
     <div class="wordmark">Literacy<em>M</em></div>
     <div class="wordmark-ko">리터러시M</div>
     <div class="cover-rule"></div>
     <h1>회원가입 · 앱 설치 · 로그인 가이드<br><span class="os">(iPhone)</span></h1>
     <div class="audience">한국어 사용자 안내용</div>
-    <div class="cover-go no-print"><button class="btn btn-primary" data-goto="1">시작하기 &rarr;</button></div>
     <div class="credits">
       <div class="partners">KBIOHEALTHCARE</div>
     </div>
@@ -684,7 +684,10 @@ li.star .line-ko{color:#b06157}
     return t;
   }
 
-  function show(i, back) {
+  /* mode: 'push' 새 이력 추가 · 'replace' 현재 이력 교체 · 'none' 주소 변경 안 함
+     휴대폰 뒤로가기가 이전 단계로 가도록 push 를 기본으로 쓴다.
+     샌드박스 iframe 등에서 주소 변경이 막혀도 넘기기는 계속 되어야 하므로 try/catch. */
+  function show(i, back, mode) {
     i = Math.max(0, Math.min(pages.length - 1, i));
     cur = i;
     pages.forEach(function (p, j) {
@@ -697,15 +700,35 @@ li.star .line-ko{color:#b06157}
     if (progEl) progEl.style.width = ((i + 1) / pages.length * 100) + '%';
     if (wrap) wrap.scrollTop = 0;
     var id = pages[i].id;
-    /* 샌드박스 iframe 등에서는 주소 변경이 막힌다. 실패해도 넘기기는 계속 되어야 한다. */
-    try {
-      if (id && history.replaceState) history.replaceState(null, '', '#' + id);
-    } catch (e) { /* 무시 */ }
+    if (id && mode !== 'none') {
+      try {
+        if (mode === 'replace') history.replaceState({ i: i }, '', '#' + id);
+        else history.pushState({ i: i }, '', '#' + id);
+      } catch (e) { /* 무시 */ }
+    }
     document.querySelectorAll('.toc-panel .jump').forEach(function (b) {
       b.classList.toggle('cur', Number(b.dataset.i) === i);
     });
   }
   function go(d) { show(cur + d, d < 0); }
+
+  function indexOfId(id) {
+    var j = -1;
+    pages.forEach(function (p, k) { if (p.id === id) j = k; });
+    return j;
+  }
+
+  /* 뒤로/앞으로 → 단계 이동 */
+  window.addEventListener('popstate', function () {
+    var j = indexOfId((location.hash || '').slice(1));
+    if (j < 0) j = 0;
+    show(j, j < cur, 'none');
+  });
+  /* 주소를 직접 고친 경우 */
+  window.addEventListener('hashchange', function () {
+    var j = indexOfId((location.hash || '').slice(1));
+    if (j >= 0 && j !== cur) show(j, j < cur, 'none');
+  });
 
   if (prevBtn) prevBtn.addEventListener('click', function () { go(-1); });
   if (nextBtn) nextBtn.addEventListener('click', function () { go(1); });
@@ -786,11 +809,10 @@ li.star .line-ko{color:#b06157}
     lb.addEventListener('click', closeLb);
   }
 
-  /* 진입 위치: 주소의 #앵커 */
-  var h = (location.hash || '').slice(1);
-  var start = 0;
-  if (h) { pages.forEach(function (p, j) { if (p.id === h) start = j; }); }
-  show(start);
+  /* 진입 위치: 주소의 #앵커. 첫 진입은 이력을 교체해
+     뒤로가기가 이전 화면(기기 선택)으로 나가도록 한다. */
+  var start = indexOfId((location.hash || '').slice(1));
+  show(start < 0 ? 0 : start, false, 'replace');
 })();
 
 </script>

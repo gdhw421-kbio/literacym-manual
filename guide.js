@@ -17,7 +17,10 @@
     return t;
   }
 
-  function show(i, back) {
+  /* mode: 'push' 새 이력 추가 · 'replace' 현재 이력 교체 · 'none' 주소 변경 안 함
+     휴대폰 뒤로가기가 이전 단계로 가도록 push 를 기본으로 쓴다.
+     샌드박스 iframe 등에서 주소 변경이 막혀도 넘기기는 계속 되어야 하므로 try/catch. */
+  function show(i, back, mode) {
     i = Math.max(0, Math.min(pages.length - 1, i));
     cur = i;
     pages.forEach(function (p, j) {
@@ -30,15 +33,35 @@
     if (progEl) progEl.style.width = ((i + 1) / pages.length * 100) + '%';
     if (wrap) wrap.scrollTop = 0;
     var id = pages[i].id;
-    /* 샌드박스 iframe 등에서는 주소 변경이 막힌다. 실패해도 넘기기는 계속 되어야 한다. */
-    try {
-      if (id && history.replaceState) history.replaceState(null, '', '#' + id);
-    } catch (e) { /* 무시 */ }
+    if (id && mode !== 'none') {
+      try {
+        if (mode === 'replace') history.replaceState({ i: i }, '', '#' + id);
+        else history.pushState({ i: i }, '', '#' + id);
+      } catch (e) { /* 무시 */ }
+    }
     document.querySelectorAll('.toc-panel .jump').forEach(function (b) {
       b.classList.toggle('cur', Number(b.dataset.i) === i);
     });
   }
   function go(d) { show(cur + d, d < 0); }
+
+  function indexOfId(id) {
+    var j = -1;
+    pages.forEach(function (p, k) { if (p.id === id) j = k; });
+    return j;
+  }
+
+  /* 뒤로/앞으로 → 단계 이동 */
+  window.addEventListener('popstate', function () {
+    var j = indexOfId((location.hash || '').slice(1));
+    if (j < 0) j = 0;
+    show(j, j < cur, 'none');
+  });
+  /* 주소를 직접 고친 경우 */
+  window.addEventListener('hashchange', function () {
+    var j = indexOfId((location.hash || '').slice(1));
+    if (j >= 0 && j !== cur) show(j, j < cur, 'none');
+  });
 
   if (prevBtn) prevBtn.addEventListener('click', function () { go(-1); });
   if (nextBtn) nextBtn.addEventListener('click', function () { go(1); });
@@ -119,9 +142,8 @@
     lb.addEventListener('click', closeLb);
   }
 
-  /* 진입 위치: 주소의 #앵커 */
-  var h = (location.hash || '').slice(1);
-  var start = 0;
-  if (h) { pages.forEach(function (p, j) { if (p.id === h) start = j; }); }
-  show(start);
+  /* 진입 위치: 주소의 #앵커. 첫 진입은 이력을 교체해
+     뒤로가기가 이전 화면(기기 선택)으로 나가도록 한다. */
+  var start = indexOfId((location.hash || '').slice(1));
+  show(start < 0 ? 0 : start, false, 'replace');
 })();
