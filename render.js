@@ -52,7 +52,16 @@
     pickDevice: 'Which phone do you use?',
     pickLang: 'Select your language',
     back: 'Back',
-    homeLink: 'Choose a different phone'
+    homeLink: 'Choose a different phone',
+    tocBtn: 'Contents',
+    prev: 'Back',
+    next: 'Next',
+    start: 'Start',
+    coverLabel: 'Cover',
+    zoomHint: 'Tap to enlarge',
+    doneLabel: 'Done',
+    doneTitle: 'All done',
+    close: 'Close'
   };
   function ui(lang, key) {
     var v = (lang.ui || {})[key];
@@ -84,45 +93,38 @@
     };
   }
 
-  /* ---- 가이드 -------------------------------------------------------- */
+  /* ---- 가이드 (한 단계 = 한 페이지) ----------------------------------- */
   function renderGuide(device, lang, project) {
     var site = project.site || {};
     var total = device.steps.length;
     var wmPlain = esc(site.wordmark || 'LiteracyM');
     var wm = wmPlain.replace(/M$/, '<em>M</em>');
     var bilingual = !lang.isSource;
-    var osKo = lang.isSource ? device.nameKo : device.nameKo;
-    var langs = project.languages || [];
-
     var resolved = device.steps.map(function (st) { return resolve(st, lang); });
 
-    var idx = resolved.map(function (r, i) {
-      var n = i + 1;
-      return '      <li><a href="#step-' + n + '"><b>' + (n < 10 ? '0' + n : n) + '</b>' +
-        '<span>' + rich(r.title) +
-        (r.titleKo ? '<span class="line-ko">' + rich(r.titleKo) + '</span>' : '') +
-        '</span></a></li>';
+    /* 목차 (오버레이) */
+    var toc = resolved.map(function (r, i) {
+      return '        <li><button class="jump" type="button" data-i="' + (i + 1) + '">' +
+        '<b>' + (i + 1) + '</b><span class="t">' + rich(r.title) +
+        (r.titleKo ? '<span class="k">' + rich(r.titleKo) + '</span>' : '') +
+        '</span></button></li>';
     }).join('\n');
 
+    /* 단계 페이지 */
     var blocks = resolved.map(function (r, i) {
       var n = i + 1;
       var step = device.steps[i];
       var img = (step.images || {})[lang.code] || '';
-      var alt = wmPlain + ' ' + esc(device.name) + ' — STEP ' + n;
+      var alt = wmPlain + ' ' + esc(device.name) + ' — ' + esc(ui(lang, 'stepWord')) + ' ' + n;
       var shot = img
         ? '<img src="' + img + '" alt="' + alt + '" />'
         : '<div class="shot-empty">이미지 없음<br><small>관리자 페이지에서 등록하세요</small></div>';
 
-      var out = '';
-      if (r.section) {
-        out += '  <div class="divider no-print"><span class="line"></span>' +
-          '<span class="label">' + rich(r.section) +
-          (r.sectionKo ? '<i>' + rich(r.sectionKo) + '</i>' : '') +
-          '</span><span class="line"></span></div>\n';
-      }
-      out += '  <section class="step" id="step-' + n + '">\n' +
+      return '  <section class="step page" id="step-' + n + '"' +
+        ' data-step="' + n + '" data-total="' + total + '"' +
+        ' data-label="' + esc(r.title) + '">\n' +
         (r.section
-          ? '    <div class="step-eyebrow print-only">' + rich(r.section) +
+          ? '    <div class="step-eyebrow">' + rich(r.section) +
             (r.sectionKo ? '<i>' + rich(r.sectionKo) + '</i>' : '') + '</div>\n'
           : '') +
         '    <div class="step-head">\n' +
@@ -134,7 +136,7 @@
         '      <figure class="shot">\n' +
         '        <!-- SCREENSHOT · ' + device.id + ' / ' + lang.code + ' / STEP ' + n + ' -->\n' +
         '        ' + shot + '\n' +
-        '        <figcaption class="shot-cap">' + esc(ui(lang, 'stepWord')) + ' ' + n + ' / ' + total + '</figcaption>\n' +
+        '        <figcaption class="shot-cap">' + esc(ui(lang, 'zoomHint')) + '</figcaption>\n' +
         '      </figure>\n' +
         '      <ul class="bullets">\n' +
         r.items.map(function (x) {
@@ -149,10 +151,8 @@
         '    <div class="slide-foot print-only"><span>' + wm + ' · ' + esc(device.name) +
         '</span><span>' + esc(ui(lang, 'stepWord')) + ' ' + n + ' / ' + total + '</span></div>\n' +
         '  </section>';
-      return out;
     }).join('\n');
 
-    /* 같은 언어의 다른 기기로 가는 링크 */
     var others = (project.devices || []).filter(function (d) { return d.id !== device.id; });
     var switchHtml = others.map(function (d) {
       return '<a href="' + guideFileName(d.id, lang.code) + '">' + esc(d.name) + '</a>';
@@ -165,10 +165,10 @@
 '<html lang="' + esc(lang.code) + '">\n' +
 '<head>\n' +
 '<meta charset="utf-8" />\n' +
-'<meta name="viewport" content="width=device-width,initial-scale=1.0" />\n' +
+'<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />\n' +
 '<title>' + esc(docTitle) + '</title>\n' +
 '<meta name="description" content="' + esc(title + ' · ' + device.name + ' · ' + wmPlain) + '" />\n' +
-'<meta name="theme-color" content="#f6f6f4" />\n' +
+'<meta name="theme-color" content="#ffffff" />\n' +
 '<link rel="preconnect" href="https://fonts.googleapis.com">\n' +
 '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n' +
 '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;600;700;900&display=swap" rel="stylesheet">\n' +
@@ -178,40 +178,55 @@
 '  <div class="tb-brand"><span class="tb-dot"></span>' + wm + '</div>\n' +
 '  <span class="tb-os">' + esc(device.name) + '</span>\n' +
 '  <div class="tb-spacer"></div>\n' +
+'  <button class="btn" id="toc-btn">' + esc(ui(lang, 'tocBtn')) + '</button>\n' +
 (bilingual
-  ? '  <button class="btn tb-hide-sm" id="ko-toggle" data-off="' + esc(ui(lang, 'btnKoOff')) +
+  ? '  <button class="btn" id="ko-toggle" data-off="' + esc(ui(lang, 'btnKoOff')) +
     '" data-on="' + esc(ui(lang, 'btnKoOn')) + '">' + esc(ui(lang, 'btnKoOff')) + '</button>\n'
   : '') +
 '  <button class="btn btn-primary" id="print-btn">' + esc(ui(lang, 'btnPrint')) + '</button>\n' +
-'</div>\n\n' +
+'</div>\n' +
+'<div class="prog no-print"><i id="prog-bar"></i></div>\n\n' +
 '<div class="wrap">\n\n' +
-'  <header class="cover">\n' +
+'  <header class="cover page" id="cover" data-label="' + esc(ui(lang, 'coverLabel')) + '">\n' +
 '    <div class="wordmark">' + wm + '</div>\n' +
 '    <div class="wordmark-ko">' + esc(site.wordmarkKo || '') + '</div>\n' +
 '    <div class="cover-rule"></div>\n' +
 '    <h1>' + rich(title) + '<br><span class="os">(' + esc(device.name) + ')</span></h1>\n' +
-(bilingual ? '    <div class="h1-ko">' + esc(site.wordmarkKo || '') + ' · ' + esc(osKo) + '용</div>\n' : '') +
+(bilingual ? '    <div class="h1-ko">' + esc(site.wordmarkKo || '') + ' · ' + esc(device.nameKo || '') + '용</div>\n' : '') +
 (ui(lang, 'audience') ? '    <div class="audience">' + esc(ui(lang, 'audience')) + '</div>\n' : '') +
-'    <div class="credits">\n' +
-'      <div>' + rich(site.projectKo || '') + '</div>\n' +
-'      <div class="partners">' + esc(site.partners || '') + '</div>\n' +
-'    </div>\n' +
+'    <div class="cover-go no-print"><button class="btn btn-primary" data-goto="1">' +
+     esc(ui(lang, 'start')) + ' &rarr;</button></div>\n' +
+((site.projectKo || site.partners)
+  ? '    <div class="credits">\n' +
+    (site.projectKo ? '      <div>' + rich(site.projectKo) + '</div>\n' : '') +
+    (site.partners ? '      <div class="partners">' + esc(site.partners) + '</div>\n' : '') +
+    '    </div>\n'
+  : '') +
 '    <div class="slide-foot print-only"><span>' + wm + ' · ' + esc(device.name) +
      '</span><span>' + esc(site.partners || '') + '</span></div>\n' +
 '  </header>\n\n' +
-'  <nav class="index no-print">\n' +
-'    <h2>' + esc(ui(lang, 'contents')) + '</h2>\n' +
-'    <ol>\n' + idx + '\n    </ol>\n' +
-'  </nav>\n\n' +
 blocks + '\n\n' +
-'  <footer class="foot">\n' +
+'  <footer class="foot page" id="done" data-label="' + esc(ui(lang, 'doneLabel')) + '">\n' +
+'    <div class="done">&#10003;</div>\n' +
+'    <h2>' + esc(ui(lang, 'doneTitle')) + '</h2>\n' +
 '    <div class="line-en">' + rich(site.footerKo || '') + '</div>\n' +
-(switchHtml ? '    <div class="switch no-print">' + switchHtml + '</div>\n' : '') +
-'    <div class="switch no-print"><a href="index.html">' + esc(ui(lang, 'homeLink')) + '</a></div>\n' +
-'    <div class="mark">' + esc(site.partners || '') + '</div>\n' +
+'    <div class="switch">\n' +
+(switchHtml ? '      <div>' + switchHtml + '</div>\n' : '') +
+'      <div><a href="index.html">' + esc(ui(lang, 'homeLink')) + '</a></div>\n' +
+'    </div>\n' +
+(site.partners ? '    <div class="mark">' + esc(site.partners) + '</div>\n' : '') +
 '  </footer>\n\n' +
 '</div>\n\n' +
-'<div class="lb" id="lb"><img id="lb-img" alt="" /><div class="lb-hint">아무 곳이나 눌러 닫기</div></div>\n\n' +
+'<nav class="pager no-print">\n' +
+'  <button id="prev">&larr; ' + esc(ui(lang, 'prev')) + '</button>\n' +
+'  <div class="mid" id="pager-mid"></div>\n' +
+'  <button id="next">' + esc(ui(lang, 'next')) + ' &rarr;</button>\n' +
+'</nav>\n\n' +
+'<div class="toc no-print">\n  <div class="toc-panel">\n' +
+'    <h2>' + esc(ui(lang, 'contents')) + '<button class="toc-close" type="button">' +
+     esc(ui(lang, 'close')) + '</button></h2>\n' +
+'    <ol>\n' + toc + '\n    </ol>\n  </div>\n</div>\n\n' +
+'<div class="lb no-print" id="lb"><img id="lb-img" alt="" /></div>\n\n' +
 '<script>\n' + global.GUIDE_JS + '\n<\/script>\n' +
 '</body>\n</html>\n';
   }
@@ -287,14 +302,14 @@ blocks + '\n\n' +
 '<div class="brand">\n  <div class="wm">' + wm + '</div>\n' +
 '  <div class="ko">' + esc(site.wordmarkKo || '') + '</div>\n</div>\n\n' +
 '<main class="app">\n  <div class="card">\n\n' + body + '\n\n  </div>\n</main>\n\n' +
-'<div class="mark">' + esc(site.partners || '') + '</div>\n\n' +
+(site.partners ? '<div class="mark">' + esc(site.partners) + '</div>\n\n' : '') +
 '<script>\n' +
 '(function () {\n' +
 '  var steps = document.querySelectorAll(".step");\n' +
 '  if (steps.length < 2) return;\n' +
 '  function show(id) {\n' +
 '    steps.forEach(function (s) { s.classList.toggle("on", s.id === id); });\n' +
-'    if (history.replaceState) history.replaceState(null, "", "#" + id);\n' +
+'    try { if (history.replaceState) history.replaceState(null, "", "#" + id); } catch (e) {}\n' +
 '    window.scrollTo(0, 0);\n' +
 '  }\n' +
 '  document.querySelectorAll("[data-go]").forEach(function (b) {\n' +
