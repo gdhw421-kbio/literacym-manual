@@ -35,8 +35,8 @@ a{color:var(--accent);text-decoration:none}
 
 /* ---------- page area ---------- */
 .wrap{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  padding:22px 18px 26px;display:flex;flex-direction:column;align-items:center}
-.page{display:none;width:100%;max-width:760px}
+  padding:22px 18px 26px}
+.page{display:none;width:100%;max-width:760px;margin:0 auto}
 .page.on{display:block;animation:pin .22s ease both}
 @keyframes pin{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
 .page.back.on{animation-name:pinb}
@@ -75,10 +75,10 @@ a{color:var(--accent);text-decoration:none}
 .step-eyebrow{font-family:'Inter','Noto Sans KR',sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.08em;
   color:var(--accent);margin-bottom:8px}
 .step-eyebrow i{font-style:normal;font-weight:500;letter-spacing:0;color:var(--ink-faint);margin-left:6px}
-.step-body{display:grid;grid-template-columns:1fr;gap:18px;margin-top:18px}
+.step-body{display:flex;flex-direction:column;gap:14px;margin-top:16px}
 .shot{order:2;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fbfbf9;
-  width:-moz-fit-content;width:fit-content;margin:0 auto;max-width:100%}
-.shot img{display:block;max-height:46vh;width:auto;max-width:100%;cursor:zoom-in}
+  margin:0 auto;max-width:100%;width:-moz-fit-content;width:fit-content}
+.shot img{display:block;max-height:min(22vh,150px);width:auto;max-width:100%;cursor:zoom-in;margin:0 auto}
 .shot-cap{font-size:10.5px;font-weight:600;color:var(--ink-faint);text-align:center;padding:6px 4px;
   border-top:1px solid var(--line-soft);background:var(--surface);cursor:zoom-in}
 .shot-empty{display:flex;align-items:center;justify-content:center;min-height:200px;width:150px;font-size:11.5px;
@@ -158,26 +158,50 @@ li.star .line-ko{color:#b06157}
 .lb-hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);color:#e9e9e4;font-size:12px;
   font-weight:600;background:rgba(0,0,0,.5);padding:7px 14px;border-radius:20px}
 
-/* ---------- 화면이 짧을 때 (작은 휴대폰) ---------- */
-@media(max-height:760px) and (max-width:759px){
+/* ================= 반응형 (아래로 갈수록 좁고 짧은 화면) ================= */
+
+/* --- 좁은 화면 공통 --- */
+@media(max-width:759px){
   .wrap{padding:14px 14px 18px}
-  .step{padding:16px 16px 18px}
-  .step-head{padding-bottom:11px}
-  .step-title{font-size:16.5px}
-  .step-body{margin-top:14px;gap:14px}
-  .shot img{max-height:34vh}
-  ul.bullets>li{margin-bottom:11px}
-  ul.bullets>li.star{padding:8px 11px 8px 24px}
-  .line-en{font-size:14.5px}
-  .line-ko{font-size:12.5px}
-  .cover{padding:28px 20px 24px}
-  .wordmark{font-size:29px}
+  .cover{padding:30px 20px 26px}
+  .wordmark{font-size:30px}
   .cover h1{font-size:19px}
-  .cover-rule{margin:16px auto}
-  .credits{margin-top:18px;padding-top:14px}
+  .step{padding:18px 18px 20px}
+  .step-title{font-size:16.5px}
+  .line-en{font-size:14px;line-height:1.55}
+  .line-ko{font-size:12.5px}
+  ul.bullets>li{margin-bottom:11px;padding-left:17px}
+  .tb-hide-sm{display:none}
 }
 
-/* ---------- desktop ---------- */
+/* --- 세로 880px 이하 (대부분의 휴대폰) --- */
+@media(max-height:880px) and (max-width:759px){
+  .wrap{padding:10px 12px 14px}
+  .step{padding:15px 15px 17px}
+  .step-head{padding-bottom:10px}
+  .step-body{margin-top:11px;gap:10px}
+  .shot img{max-height:min(15vh,120px)}
+  ul.bullets>li{margin-bottom:10px}
+  ul.bullets>li.star{padding:7px 10px 7px 22px}
+  .cover{padding:26px 18px 22px}
+  .cover-rule{margin:15px auto}
+  .credits{margin-top:16px;padding-top:13px}
+}
+
+/* --- 세로 700px 이하 (iPhone SE 등 작은 휴대폰) --- */
+@media(max-height:700px) and (max-width:759px){
+  .wrap{padding:6px 10px 8px}
+  .step{padding:12px 13px 13px}
+  .step-title{font-size:15px}
+  .step-head{padding-bottom:7px}
+  .step-body{margin-top:8px;gap:8px}
+  .shot img{max-height:min(12vh,74px)}
+  .line-en{font-size:13.5px;line-height:1.46}
+  ul.bullets>li{margin-bottom:7px}
+  ul.bullets>li.star{padding:5px 8px 5px 20px}
+}
+
+/* --- 데스크톱 --- */
 @media(min-width:760px){
   .wrap{padding:30px 24px 34px}
   .cover{padding:48px 44px 36px}
@@ -185,9 +209,9 @@ li.star .line-ko{color:#b06157}
   .cover h1{font-size:24px}
   .step{padding:28px 30px 30px}
   .step-title{font-size:20px}
-  .step-body{grid-template-columns:210px 1fr;gap:28px;align-items:start}
-  .shot{order:0;margin:0}
-  .shot img{max-height:calc(100dvh - 290px)}
+  .step-body{display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:start}
+  .shot{order:0;margin:0;max-width:220px;align-self:start}
+  .shot img{max-height:calc(100dvh - 400px);max-width:100%}
   ul.bullets{order:0}
   .line-en{font-size:15.5px}
   .pager{padding:0 22px}
@@ -202,9 +226,10 @@ li.star .line-ko{color:#b06157}
   .print-only{display:block}
   .wrap{display:block;max-width:none;margin:0;padding:0;overflow:visible;height:auto}
 
-  .page{display:block !important;width:338mm;height:190mm;margin:0;overflow:hidden}
+  .page{display:block !important;width:338mm;max-width:none;min-height:0;height:190mm;
+    margin:0;overflow:hidden}
   .page.foot{display:none !important}
-  .cover{display:flex !important;width:338mm;height:190mm}
+  .cover{display:flex !important;width:338mm;max-width:none;height:190mm}
   .cover,.step{width:338mm;height:190mm;margin:0;border:none;border-radius:0;overflow:hidden;
     display:flex;flex-direction:column;break-inside:avoid;page-break-inside:avoid;
     break-after:page;page-break-after:always;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -230,8 +255,10 @@ li.star .line-ko{color:#b06157}
   .step-eyebrow{font-size:9pt;margin-bottom:2.5mm}
   .step-body{flex:1;min-height:0;display:grid;grid-template-columns:min-content minmax(0,185mm);gap:20mm;
     justify-content:center;margin-top:7mm;align-items:start}
-  .shot{order:0;border:1px solid #e2e2dc;border-radius:2mm;margin:0}
-  .shot img{max-height:none;height:120mm;width:auto;max-width:none;cursor:default}
+  .shot{order:0;border:1px solid #e2e2dc;border-radius:2mm;margin:0;flex:none;display:block;
+    width:-moz-fit-content;width:fit-content;max-width:none;max-height:none;min-height:0}
+  .shot img{display:block;flex:none;max-height:none;height:120mm;width:auto;max-width:none;
+    object-fit:fill;cursor:default;margin:0}
   .shot-empty{min-height:120mm;width:38mm;font-size:8pt}
   ul.bullets{order:0}
   ul.bullets>li{padding-left:7mm;margin-bottom:6mm}

@@ -40,7 +40,7 @@
       } catch (e) { /* 무시 */ }
     }
     document.querySelectorAll('.toc-panel .jump').forEach(function (b) {
-      b.classList.toggle('cur', Number(b.dataset.i) === i);
+      b.classList.toggle('cur', pages[i] && pages[i].id === 'step-' + b.dataset.i);
     });
   }
   function go(d) { show(cur + d, d < 0); }
@@ -102,9 +102,11 @@
     if (cls) cls.addEventListener('click', closeToc);
     toc.querySelectorAll('.jump').forEach(function (b) {
       b.addEventListener('click', function () {
-        var i = Number(b.dataset.i);
+        /* data-i 는 단계 번호(1부터). 페이지 순서와 다를 수 있으므로 id 로 찾는다. */
+        var j = indexOfId('step-' + b.dataset.i);
+        if (j < 0) return;
         closeToc();
-        show(i, i < cur);
+        show(j, j < cur);
       });
     });
   }

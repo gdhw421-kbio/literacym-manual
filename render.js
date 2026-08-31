@@ -59,6 +59,7 @@
     start: 'Start',
     coverLabel: 'Cover',
     zoomHint: 'Tap to enlarge',
+    footer: '',
     doneLabel: 'Done',
     doneTitle: 'All done',
     close: 'Close'
@@ -74,32 +75,44 @@
 
   /* ---- 한 단계의 표시용 텍스트를 언어에 맞춰 뽑아낸다 ------------------ */
   function resolve(step, lang) {
-    var src = lang.isSource;
+    var src = lang.isSource || !lang.showKorean;   /* 대역을 안 쓰면 단일 언어로 취급 */
+    var useTr = !lang.isSource;
     var tr = (step.t || {})[lang.code] || null;
     var items = (step.items || []).map(function (x, i) {
       var t = tr && tr.items && tr.items[i];
       return {
-        main: src ? x.ko : (t && t.text ? t.text : x.ko),
+        main: useTr && t && t.text ? t.text : x.ko,
         ko: src ? '' : x.ko,
         type: x.type || 'dot'
       };
     });
     return {
-      title: src ? step.titleKo : ((tr && tr.title) ? tr.title : step.titleKo),
+      title: useTr && tr && tr.title ? tr.title : step.titleKo,
       titleKo: src ? '' : step.titleKo,
-      section: src ? step.sectionKo : ((tr && tr.section) ? tr.section : step.sectionKo),
+      section: useTr && tr && tr.section ? tr.section : step.sectionKo,
       sectionKo: src ? '' : step.sectionKo,
       items: items
     };
   }
 
   /* ---- 가이드 (한 단계 = 한 페이지) ----------------------------------- */
+  /* 해당 언어 이미지가 없으면 원본 언어(한국어) 이미지를 대신 보여준다.
+     영어판 스크린샷을 아직 준비하지 못했어도 페이지가 비어 보이지 않게 하기 위함. */
+  function stepImage(step, lang, project) {
+    var imgs = step.images || {};
+    if (imgs[lang.code]) return imgs[lang.code];
+    var src = (project.languages || []).filter(function (l) { return l.isSource; })[0];
+    if (src && imgs[src.code]) return imgs[src.code];
+    for (var k in imgs) { if (imgs[k]) return imgs[k]; }
+    return '';
+  }
+
   function renderGuide(device, lang, project) {
     var site = project.site || {};
     var total = device.steps.length;
     var wmPlain = esc(site.wordmark || 'LiteracyM');
     var wm = wmPlain.replace(/M$/, '<em>M</em>');
-    var bilingual = !lang.isSource;
+    var bilingual = !lang.isSource && !!lang.showKorean;
     var resolved = device.steps.map(function (st) { return resolve(st, lang); });
 
     /* 목차 (오버레이) */
@@ -114,7 +127,7 @@
     var blocks = resolved.map(function (r, i) {
       var n = i + 1;
       var step = device.steps[i];
-      var img = (step.images || {})[lang.code] || '';
+      var img = stepImage(step, lang, project);
       var alt = wmPlain + ' ' + esc(device.name) + ' — ' + esc(ui(lang, 'stepWord')) + ' ' + n;
       var shot = img
         ? '<img src="' + img + '" alt="' + alt + '" />'
@@ -208,7 +221,7 @@ blocks + '\n\n' +
 '  <footer class="foot page" id="done" data-label="' + esc(ui(lang, 'doneLabel')) + '">\n' +
 '    <div class="done">&#10003;</div>\n' +
 '    <h2>' + esc(ui(lang, 'doneTitle')) + '</h2>\n' +
-'    <div class="line-en">' + rich(site.footerKo || '') + '</div>\n' +
+'    <div class="line-en">' + rich(ui(lang, 'footer') || site.footerKo || '') + '</div>\n' +
 '    <div class="switch">\n' +
 (switchHtml ? '      <div>' + switchHtml + '</div>\n' : '') +
 '      <div><a href="index.html">' + esc(ui(lang, 'homeLink')) + '</a></div>\n' +
