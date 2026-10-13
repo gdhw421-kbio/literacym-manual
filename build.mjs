@@ -60,6 +60,9 @@ for (const [name, html] of files) {
   console.log(`  ${name}  ${(Buffer.byteLength(html) / 1024).toFixed(0)} KB`);
 }
 copyFileSync(join(ROOT, 'manual-project.json'), join(DIST, 'manual-project.json'));
+/* 링크 공유 미리보기 이미지 (카카오톡·슬랙 등에서 보이는 썸네일) */
+const og = join(ROOT, 'og-image.png');
+if (existsSync(og)) copyFileSync(og, join(DIST, 'og-image.png'));
 
 console.log(`\n공개 사이트: ${files.length}개 페이지 → dist/`);
 console.log(`  언어 ${languages.length}개 (${languages.map((l) => l.code).join(', ')})` +

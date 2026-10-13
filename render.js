@@ -40,6 +40,25 @@
     return out + esc(s.slice(last));
   }
 
+  /* ---- 링크 공유 미리보기(Open Graph) 메타 태그 ----------------------- *
+     site.url 이 있으면 절대 주소로 이미지를 가리킨다. 카카오톡·슬랙 등은
+     절대 주소가 아니면 이미지를 안 보여준다. 이미지 파일은 저장소의
+     og-image.png 이며 build.mjs 가 dist/ 로 복사한다.                    */
+  function ogTags(site, page, pageTitle, desc) {
+    var base = String(site.url || '').replace(/\/+$/, '');
+    var img = base ? base + '/og-image.png' : 'og-image.png';
+    var url = base ? base + '/' + (page === 'index.html' ? '' : page) : '';
+    return '<meta property="og:type" content="website" />\n' +
+      '<meta property="og:site_name" content="' + esc(site.wordmark || 'LiteracyM') + '" />\n' +
+      '<meta property="og:title" content="' + esc(pageTitle) + '" />\n' +
+      (desc ? '<meta property="og:description" content="' + esc(desc) + '" />\n' : '') +
+      '<meta property="og:image" content="' + esc(img) + '" />\n' +
+      '<meta property="og:image:width" content="1200" />\n' +
+      '<meta property="og:image:height" content="630" />\n' +
+      (url ? '<meta property="og:url" content="' + esc(url) + '" />\n' : '') +
+      '<meta name="twitter:card" content="summary_large_image" />\n';
+  }
+
   /* ---- 언어별 기본 UI 문구 ------------------------------------------- */
   var UI_FALLBACK = {
     title: 'Sign-up · App installation · Login guide',
@@ -181,6 +200,7 @@
 '<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />\n' +
 '<title>' + esc(docTitle) + '</title>\n' +
 '<meta name="description" content="' + esc(title + ' · ' + device.name + ' · ' + wmPlain) + '" />\n' +
+ogTags(site, guideFileName(device.id, lang.code), docTitle, site.ogDescription || '') +
 '<meta name="theme-color" content="#ffffff" />\n' +
 '<link rel="preconnect" href="https://fonts.googleapis.com">\n' +
 '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n' +
@@ -309,6 +329,7 @@ blocks + '\n\n' +
 '<meta name="viewport" content="width=device-width,initial-scale=1.0" />\n' +
 '<title>' + wmPlain + ' 사용자 매뉴얼</title>\n' +
 '<meta name="description" content="사용하시는 기기를 선택하면 회원가입·앱 설치·로그인 가이드가 열립니다." />\n' +
+ogTags(site, 'index.html', wmPlain + ' User Guide', site.ogDescription || '') +
 '<meta name="theme-color" content="#f6f6f4" />\n' +
 '<link rel="preconnect" href="https://fonts.googleapis.com">\n' +
 '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n' +
