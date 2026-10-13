@@ -11,6 +11,7 @@ body{font-family:'Noto Sans KR','Apple SD Gothic Neo',sans-serif;background:var(
   height:100vh;height:100dvh;overflow:hidden}
 b,strong{font-weight:700;color:var(--ink)}
 a{color:var(--accent);text-decoration:none}
+.bullets a{text-decoration:underline;text-underline-offset:3px}
 .print-only{display:none}
 
 /* ---------- toolbar ---------- */
